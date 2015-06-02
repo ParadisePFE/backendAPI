@@ -1,0 +1,82 @@
+# you can read more about security in the related section of the documentation
+# http://symfony.com/doc/current/book/security.html
+security:
+    # http://symfony.com/doc/current/book/security.html#encoding-the-user-s-password
+    encoders:
+        Symfony\Component\Security\Core\User\User: plaintext
+        Paradiz\ApiBundle\Entity\User:             sha512
+
+    # http://symfony.com/doc/current/book/security.html#hierarchical-roles
+    role_hierarchy:
+        ROLE_ADMIN:       ROLE_USER
+        ROLE_SUPER_ADMIN: [ROLE_USER, ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH]
+
+    # http://symfony.com/doc/current/book/security.html#where-do-users-come-from-user-providers
+    providers:
+        user_provider:
+            id: fos_user.user_provider.username
+    # the main part of the security, where you can set up firewalls
+    # for specific sections of your app
+    firewalls:
+        dev:
+            pattern:  ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+        login:
+            pattern:  ^/paradiz/secured/login$
+            security: false
+        api:
+            pattern:    ^/api
+            fos_oauth:  true
+            stateless:  true
+        main:
+            pattern:        ^/
+            anonymous:      true
+            provider:       user_provider
+            form_login:
+                login_path: fos_user_security_login
+                check_path: fos_user_security_check
+            logout:
+                path:       fos_user_security_logout
+                target:     /platform
+            remember_me:
+                key:        %secret%
+        oauth_token:
+            pattern:    ^/oauth/v2/token
+            security:   false
+
+        oauth_authorize:
+            pattern:    ^/oauth/v2/auth
+            form_login:
+                provider: user_provider
+                check_path: fos_user_security_check
+                login_path: fos_user_security_login
+            anonymous: true
+            logout:
+                path: fos_user_security_logout
+                target: /platform
+        secured_area:
+            pattern:    ^/paradiz/secured/
+            form_login:
+                provider: user_provider
+                check_path: fos_user_security_check
+                login_path: fos_user_security_login
+            logout:
+                path:   fos_user_security_logout
+                target: fos_user_security_login
+
+        # disables authentication for assets and the profiler, adapt it according to your needs
+
+
+
+        # the login page has to be accessible for everybody
+            #anonymous: ~
+            #http_basic:
+            #    realm: "Secured Demo Area"
+
+    # with these settings you can restrict or allow access for different parts
+    # of your application based on roles, ip, host or methods
+    # http://symfony.com/doc/current/book/security.html#security-book-access-control-matching-options
+    access_control:
+        #- { path: ^/login, roles: IS_AUTHENTICATED_ANONYMOUSLY, requires_channel: https }
+        - { path: ^/api, roles: [ IS_AUTHENTICATED_FULLY ] }
+        - { path: ^/paradiz/secured/hello/admin/, roles: ROLE_ADMIN }
